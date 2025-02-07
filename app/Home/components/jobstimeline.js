@@ -1,7 +1,7 @@
 'use client'
 export default function Jobtimeline() {
   return (
-    <div class="bg-white mt-16 px-4 ">
+    <div class="bg-white mt-16 px-4 mx-auto justify-center max-w-7xl">
         <h2 class="text-4xl mt-0  text-center mb-20 font-semibold tracking-tight text-gray-900 ">
         Experience
         </h2>
