@@ -1,8 +1,9 @@
 'use client'
 
+
 import { useState } from 'react'
 import { Disclosure, DisclosureButton, DisclosurePanel, Menu, MenuButton, MenuItem, MenuItems, Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react'
-import { Bars3Icon, XMarkIcon, GlobeAltIcon } from '@heroicons/react/24/outline'
+import { Bars3Icon, XMarkIcon, GlobeAltIcon, ArrowDownIcon} from '@heroicons/react/24/outline'
 import { FaDownload } from "react-icons/fa"
 import { usePathname } from 'next/navigation'
 //todo hacer que la descarga funcione con el cv en español
@@ -23,27 +24,57 @@ export default function Navbar() {
   ]
   // Cambiamos el estado inicial a false
   const [isOpen, setIsOpen] = useState(false)
+  //this is a state for know if the user is downloading the cv in spanish or english
+  const [isDownloading, setIsDownloading] = useState({
+    spanish: false,
+    english: false
+  });
 
-  const handleDownload = (language) => {
-    // Replace these URLs with your actual PDF URLs
-    const pdfUrls = {
-      english: 'public/data/CV/Felipe_Pizarro_CV_EN.pdf',
-      spanish: 'public/data/CV/Felipe_Pizarro_CV_ES.pdf'
-    }
-    
+  const handleDownload = async (language) => {
     try {
-      const link = document.createElement('a')
-      link.href = pdfUrls[language]
-      link.setAttribute('download', `CV-${language}.pdf`)
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-    } catch (error) {
-      console.error('Error downloading file:', error)
-    } finally {
-      setIsOpen(false)
+      // Actualizamos el estado solo para el idioma específico
+      setIsDownloading(prev => ({
+        ...prev,
+        [language]: true
+      }));
+
+      const response = await fetch(`/api/document?type=cv-${language}`);
+
+      if (!response.ok) {
+        throw new Error('Error al descargar el archivo');
+      } 
+      //hacemos que la peticion http pase de binario a blob o binario inmutable para archivos
+      const blob = await response.blob();
+      //creamos una url temporal para la descarga este url apunta al archivo que se descargara
+      const url = window.URL.createObjectURL(blob);
+      //creamos un link para descargar el archivo
+      const link = document.createElement('a');
+      link.href = url;
+
+      if (language === 'es') {
+        link.download = 'CV_Felipe_Pizarro_ES.pdf';
+      }else {
+        link.download = 'CV_Felipe_Pizarro_EN.pdf';
+      }
+
+      document.body.appendChild(link);
+      link.click();
+
+      // Limpiamos la URL temporal  
+      window.URL.revokeObjectURL(url);
+      //removemos el link del documento
+      document.body.removeChild(link);
+
+    }catch {
+      console.error('Error al descargar el archivo');
+      alert('Error al descargar el archivo');
+    }finally {  
+      setIsDownloading(prev => ({
+        ...prev,
+        [language]: false
+      }));
     }
-  }
+  };
 
   // Función separada para manejar la apertura del modal
   const handleOpenModal = () => {
@@ -95,11 +126,11 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={handleOpenModal}
-                className="relative rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800 px-4 items-center"
+                className="relative rounded-full bg-gray-800 p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-white px-4 items-center"
               >
                 <div className='flex items-center'>
                   <span className='text-gray-50 text-sm py-1 px-1'>Download CV</span>
-                  <FaDownload />
+                  <FaDownload  />
                 </div>
               </button>
 
@@ -182,7 +213,7 @@ export default function Navbar() {
               <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                 <div className="sm:flex sm:items-start">
                   <div className="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-blue-100 sm:mx-0 sm:size-10">
-                    <GlobeAltIcon className="size-6 text-blue-600" aria-hidden="true" />
+                    <ArrowDownIcon className="size-6 text-blue-600" aria-hidden="true" />
                   </div>
                   <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
                     <DialogTitle as="h3" className="text-base font-semibold text-gray-900">
@@ -190,34 +221,35 @@ export default function Navbar() {
                     </DialogTitle>
                     <div className="mt-2">
                       <p className="text-sm text-gray-500">
-                        Please select your preferred language for the CV download.
+                        Please select your preferred language for the CV download .
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+              <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 ">
                 <button
                   type="button"
-                  onClick={() => handleDownload('english')}
-                  className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto"
+                  onClick={() => setIsOpen(false)}
+                  className="inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownload('en')}
+                  className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto "
                 >
                   English
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleDownload('spanish')}
-                  className="mt-3 inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto"
+                  onClick={() => handleDownload('es')}
+                  className=" inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto"
                 >
                   Spanish
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
-                >
-                  Cancel
-                </button>
+                
               </div>
             </DialogPanel>
           </div>
